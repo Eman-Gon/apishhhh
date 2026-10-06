@@ -1,8 +1,8 @@
 # apishhhh — credit marketplace backend
 
-A portable backend for the hackathon marketplace. Claude, Codex, and Lovable are **example provider labels only**. All inventory, prices, dollars, jobs, payments, and earnings are simulated. This backend never accesses a provider account or transfers real credits.
+A portable backend for the hackathon marketplace. Claude, Codex, Lovable, ChatGPT, Exa, Gemini, Mistral, and OpenRouter are **example provider labels only**. All inventory, prices, dollars, jobs, payments, and earnings are simulated. This backend never accesses a provider account or transfers real credits.
 
-The backend lives at this repository's root. No frontend source was present when it was migrated here. The API and browser client are ready to connect to the frontend when it arrives.
+This repository contains the backend only. The API and browser-compatible client are ready to connect to a separate frontend.
 
 ## Run
 
@@ -22,9 +22,33 @@ Copy `.env.example` to `.env` to change the port, database file, or allowed fron
 npm test
 ```
 
+## Load the larger dataset
+
+```sh
+npm run seed:demo
+```
+
+This adds 24 fictional sellers, 12 buyers, 160 listings, 96 purchases, and 96 completed simulated jobs. Together with the initial fixtures, a fresh demo has **163 listings, 25 sellers, and 13 buyers across 8 providers**. Seeded listings include partial allocations, sold-out lots, cancelled listings, expired balances, and refunded orders. Prices, names, quantities, and histories are fictional.
+
+The seed is versioned and transactional: rerunning it does not duplicate records, reset wallets, overwrite user activity, or extend expiration dates. Existing purchases and all earlier data are preserved. To get an entirely fresh demo later, choose a new `DATABASE_PATH`, then run the seed command against that file. Do not delete a database that contains activity you want to retain.
+
+## Readiness and provider connections
+
+| Capability | Status |
+|---|---|
+| Persistent catalog, listings, balances, orders, and receipts | Working locally |
+| Transactional purchases, duplicate-request protection, expiration, and refunds | Working locally |
+| Browser-compatible API client for frontend integration | Included |
+| Eight provider examples | Seeded and explicitly simulated |
+| Connect a real ChatGPT, Codex, Claude, Lovable, or other account | Not implemented |
+| Real provider balance verification, credit transfers, or API execution | Not implemented |
+| Real payments, payouts, production authentication, and operational controls | Not implemented |
+
+Adding a provider catalog entry does not create a live integration. All provider records return `liveConnectionSupported: false`. A future implementation must separately establish supported account/API access, permitted resale or application usage, and trusted metering. Subscription allowances, purchased API balances, and provider-specific credit units must not be treated as interchangeable.
+
 ## Included behavior
 
-- Provider catalog: Claude, Codex, Lovable, each marked `simulated`.
+- Provider catalog: Claude, Codex, Lovable, ChatGPT, Exa, Gemini, Mistral, OpenRouter, each marked `simulated`.
 - Seller seed listings: 200,000 Codex, 100,000 Claude, and 5,000 Lovable demo units. Pricing is fictional and does not represent provider pricing or conversion rates.
 - Buyer starts with $1,000 in simulated funds; seller starts with zero earnings.
 - Listings and quotes, purchases, purchased usage allocations, simulated jobs, seller earnings, refund of unused allocations, and cancellation/relisting of unsold inventory.
@@ -46,6 +70,7 @@ const market = createMarketplaceClient({
 });
 
 await market.signInDemo('buyer');
+// Or select an existing seeded persona: signInDemo('buyer', 'seed-buyer-1').
 const providers = await market.providers();
 const listings = await market.listings('codex');
 const quote = await market.quote(listings[0].id, 10000);
@@ -87,7 +112,9 @@ Use `Content-Type: application/json` on every POST, including cancellation with 
 |---|---|---|---|
 | GET | `/health` | None | Database and simulation status |
 | GET | `/api/providers` | None | Provider catalog |
-| POST | `/api/demo/session` | None | `{ "role": "buyer" }` or `seller`; returns a bearer token |
+| GET | `/api/demo/accounts` | None | Fictional persona IDs, names, and roles for demo sessions |
+| GET | `/api/demo/summary` | None | Counts, per-provider inventory, and explicit readiness flags |
+| POST | `/api/demo/session` | None | `{ "role": "buyer", "userId": "seed-buyer-1" }`; userId optional, returns a bearer token |
 | GET | `/api/listings` | None | Optional `providerId`; `status=active` (default) or `all` |
 | GET | `/api/listings/:id` | None | Listing detail |
 | GET | `/api/quote` | None | `listingId` and positive integer `quantity` query parameters |
@@ -114,9 +141,11 @@ Before a real deployment, replace demo sessions with user authentication and own
 
 ## Files
 
-- `src/schema.sql`: version 1 schema; startup creates missing tables without erasing existing data.
+- `src/schema.sql`: version 2 schema; startup adds the seed-run table without erasing existing data.
 - `src/market.mjs`: transactional inventory, money ledger, allocations, idempotency, and session logic.
 - `src/server.mjs`: HTTP routing, JSON validation, origin allowlist, and server startup.
 - `src/providers.mjs`: provider labels and explicit simulation adapter.
 - `src/client.mjs`: browser-compatible API client for the future frontend.
+- `src/seed-data.mjs` and `src/seed.mjs`: additive seed fixtures and CLI.
 - `test/market.test.mjs`: business-invariant, persistence, HTTP, and integration tests.
+- `test/seed.test.mjs`: seed repeatability, money/inventory conservation, persona isolation, and demo API routes.

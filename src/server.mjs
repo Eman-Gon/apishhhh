@@ -1,18 +1,10 @@
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-import { readFileSync } from 'node:fs';
 import { ApiError, createMarket } from './market.mjs';
 
 const DEFAULT_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000'];
 const invalid = (status, code, message) => { throw new ApiError(status, code, message); };
-const demoFiles = new Map([
-  ['/demo', ['../public/demo.html', 'text/html; charset=utf-8']],
-  ['/demo/', ['../public/demo.html', 'text/html; charset=utf-8']],
-  ['/demo/app.css', ['../public/app.css', 'text/css; charset=utf-8']],
-  ['/demo/app.mjs', ['../public/app.mjs', 'text/javascript; charset=utf-8']],
-  ['/demo/client.mjs', ['./client.mjs', 'text/javascript; charset=utf-8']],
-]);
 
 async function readBody(req) {
   if (!req.headers['content-type']?.toLowerCase().startsWith('application/json'))
@@ -49,13 +41,6 @@ export function createApi({ market = createMarket(), origins = DEFAULT_ORIGINS }
       const url = new URL(req.url, 'http://localhost');
       const path = url.pathname;
       const method = req.method;
-      if (method === 'GET' && path === '/') { res.writeHead(302, { Location: '/demo' }); res.end(); return; }
-      if (method === 'GET' && demoFiles.has(path)) {
-        const [file, type] = demoFiles.get(path);
-        res.setHeader('Content-Type', type);
-        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
-        res.writeHead(200); res.end(readFileSync(new URL(file, import.meta.url))); return;
-      }
       const key = req.headers['idempotency-key'];
       let result;
       let status = 200;

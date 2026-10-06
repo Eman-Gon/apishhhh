@@ -130,7 +130,7 @@ test('HTTP API and integration client complete the flow; concurrent checkouts ca
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
   const client = createMarketplaceClient({ baseUrl });
   const session = await client.signInDemo('buyer');
-  assert.equal((await client.providers()).length, 3);
+  assert.equal((await client.providers()).length, 8);
   const outcomes = await Promise.allSettled([
     client.buy('listing-codex', 150000, 'race-1'),
     client.buy('listing-codex', 150000, 'race-2'),
